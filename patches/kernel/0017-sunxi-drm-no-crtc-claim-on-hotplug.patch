@@ -1,0 +1,67 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: opi3w build <build@localhost>
+Date: Wed, 4 Nov 2026 23:00:00 +0100
+Subject: [PATCH] drm: sunxi: leave connector setup to fbdev client and userspace
+
+---
+--- a/bsp/drivers/drm/sunxi_drm_drv.c	2026-11-04 23:12:06.431121101 +0100
++++ b/bsp/drivers/drm/sunxi_drm_drv.c	2026-11-04 23:12:06.473325997 +0100
+@@ -847,7 +847,7 @@
+ 	}
+ }
+ 
+-static struct sunxi_mode_monitor *sunxi_drm_create_mode_monitor(
++static struct sunxi_mode_monitor *__maybe_unused sunxi_drm_create_mode_monitor(
+ 		struct drm_connector *connector,
+ 		struct drm_crtc *crtc,
+ 		struct sunxi_drm_pri *priv)
+@@ -876,7 +876,7 @@
+ 	return monitor;
+ }
+ 
+-static void sunxi_drm_start_mode_monitor(struct sunxi_mode_monitor *monitor)
++static void __maybe_unused sunxi_drm_start_mode_monitor(struct sunxi_mode_monitor *monitor)
+ {
+ 	if (!monitor || !monitor->is_monitoring)
+ 		return;
+@@ -961,34 +961,12 @@
+ 		init_cnt++;
+ 	}
+ 
+-	/* no bootloader connecting info, use the first one we found */
+-	if (init_cnt == 0) {
+-		mutex_lock(&drm->mode_config.mutex);
+-		modes_count = connectors[0]->funcs->fill_modes(connectors[0], 8192, 8192);
+-		/* DRM_INFO("%s found mode %d\n", __FUNCTION__, modes_count); */
+-		mode = list_first_entry_or_null(&connectors[0]->modes, struct drm_display_mode, head);
+-		if (mode) {
+-			c = kmalloc(sizeof(*c), GFP_KERNEL | __GFP_ZERO);
+-			c->crtc = crtcs[0];
+-			c->connector = connectors[0];
+-			c->mode = mode;
+-			list_add_tail(&c->list, &pri->priv->connecting_head);
+-			mutex_unlock(&drm->mode_config.mutex);
+-		} else {
+-			mutex_unlock(&drm->mode_config.mutex);
+-			if (connectors[0]->funcs && connectors[0]->funcs->detect) {
+-				DRM_INFO("%s Not connected, start hot-plug monitoring\n", connectors[0]->name);
+-				pri->mode_monitor = sunxi_drm_create_mode_monitor(
+-						connectors[0], crtcs[0], pri->priv);
+-
+-				if (pri->mode_monitor) {
+-					sunxi_drm_start_mode_monitor(pri->mode_monitor);
+-				}
+-			} else {
+-				DRM_INFO("%s does not support hot-swapping\n", connectors[0]->name);
+-			}
+-		}
+-	}
++	/*
++	 * opi3w: Without bootloader routing, leave every connector to the generic
++	 * fbdev client and to userspace. The former fallback claimed CRTC 0 for
++	 * the first connector, and its hot-plug monitor did so while a compositor
++	 * was already driving USB-C DisplayPort from that CRTC.
++	 */
+ 	return 0;
+ }
+ 

@@ -1,0 +1,14 @@
+--- a/src/egl/drivers/dri2/platform_wayland.c
++++ b/src/egl/drivers/dri2/platform_wayland.c
+@@ -2716,7 +2716,10 @@
+    if (!dri2_create_screen(disp))
+       goto cleanup;
+ 
+-   if (!dri2_setup_device(disp, false)) {
++   /* opi3w: Scanout-only compositor device (e.g. sunxi-drm) has no render node,
++    * so fd_render_gpu stays -1. zink renders and presents through its own Vulkan
++    * device and WSI, so it does not need that fd; use the fd-less EGLDevice. */
++   if (!dri2_setup_device(disp, dri2_dpy->kopper && dri2_dpy->fd_render_gpu < 0)) {
+       _eglError(EGL_NOT_INITIALIZED, "DRI2: failed to setup EGLDevice");
+       goto cleanup;
+    }

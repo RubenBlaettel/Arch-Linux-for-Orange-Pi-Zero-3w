@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: opi3w build <build@localhost>
+Date: Thu, 5 Nov 2026 00:00:00 +0100
+Subject: [PATCH] drm: sunxi: ignore bootloader display routing
+
+---
+--- a/bsp/drivers/drm/sunxi_drm_drv.c	2026-11-04 23:53:03.605256000 +0100
++++ b/bsp/drivers/drm/sunxi_drm_drv.c	2026-11-04 23:53:03.646360619 +0100
+@@ -718,6 +718,14 @@
+ 	u32 read_val = 0;
+ 
+ 	INIT_LIST_HEAD(&pri->priv->boot_info_head);
++
++	/*
++	 * opi3w: Do not take over the bootloader's HDMI route. Its CRTC differs from
++	 * the fixed assignment on this board, and the skipped TCON setup left HDMI
++	 * running at the wrong rate. Every output gets a full modeset instead.
++	 */
++	return 0;
++
+ 	for (i = 0; ; i++) {
+ 		snprintf(name, 16, "booting-%d", i);
+ 

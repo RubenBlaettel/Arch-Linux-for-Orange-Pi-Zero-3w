@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: opi3w build <build@localhost>
+Date: Wed, 4 Nov 2026 23:30:00 +0100
+Subject: [PATCH] sound: sunxi: allow playback-only PCM links
+
+---
+--- a/bsp/drivers/sound/common/snd_sunxi_pcm.c	2026-11-04 23:18:33.649294886 +0100
++++ b/bsp/drivers/sound/common/snd_sunxi_pcm.c	2026-11-04 23:18:33.687616516 +0100
+@@ -371,11 +371,14 @@
+ 				SND_LOG_ERR("pcm new playback failed, err=%d\n", ret);
+ 				goto err_pcm_prealloc_playback_buffer;
+ 			}
+-			ret = sunxi_pcm_preallocate_dma_buffer(pcm,
+-						SNDRV_PCM_STREAM_CAPTURE, cma_bytes_cap);
+-			if (ret) {
+-				SND_LOG_ERR("pcm new capture failed, err=%d\n", ret);
+-				goto err_pcm_prealloc_capture_buffer;
++			/* opi3w: playback-only codecs such as DisplayPort have no capture stream */
++			if (pcm->streams[SNDRV_PCM_STREAM_CAPTURE].substream) {
++				ret = sunxi_pcm_preallocate_dma_buffer(pcm,
++							SNDRV_PCM_STREAM_CAPTURE, cma_bytes_cap);
++				if (ret) {
++					SND_LOG_ERR("pcm new capture failed, err=%d\n", ret);
++					goto err_pcm_prealloc_capture_buffer;
++				}
+ 			}
+ 		} else {
+ 			SND_LOG_ERR("playback or capture DMA params is NULL!\n");

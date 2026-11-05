@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: opi3w build <build@localhost>
+Date: Wed, 4 Nov 2026 20:00:00 +0100
+Subject: [PATCH] orangepizero3w: usbc0 as USB device for PC test access
+
+---
+diff --git a/arch/arm64/boot/dts/allwinner/sun60i-a733-orangepi-zero3w.dts b/arch/arm64/boot/dts/allwinner/sun60i-a733-orangepi-zero3w.dts
+index 258878289..5c5efe8ad 100644
+--- a/arch/arm64/boot/dts/allwinner/sun60i-a733-orangepi-zero3w.dts
++++ b/arch/arm64/boot/dts/allwinner/sun60i-a733-orangepi-zero3w.dts
+@@ -1697,7 +1697,7 @@ &sdc1 {
+  */
+ &usbc0 {
+ 	device_type = "usbc0";
+-	usb_port_type = <0x2>;
++	usb_port_type = <0x0>;
+ // #ifdef TYPEC_DP
+ // 	usb_detect_type = <0x3>;
+ // #else

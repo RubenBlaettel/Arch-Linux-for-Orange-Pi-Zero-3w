@@ -1,0 +1,68 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: opi3w build <build@localhost>
+Date: Wed, 4 Nov 2026 23:00:00 +0100
+Subject: [PATCH] arm64: dts: orangepizero3w: add DisplayPort audio card on I2S4
+
+---
+--- a/arch/arm64/boot/dts/allwinner/sun60i-a733-orangepi-zero3w.dts	2026-11-04 23:12:06.486158663 +0100
++++ b/arch/arm64/boot/dts/allwinner/sun60i-a733-orangepi-zero3w.dts	2026-11-04 23:12:06.499673742 +0100
+@@ -3221,43 +3221,38 @@
+ };
+ 
+ &i2s4_plat {
++	/* opi3w: internal audio path to the DisplayPort controller, no pins */
+ 	tdm-num		= <4>;
+-	tx-pin		= <0>;
++	tx-pin		= <0 1 2 3>;
++	tx-pin0-map0    = <0x76543210>;
++	tx-pin0-map1    = <0xFEDCBA98>;
++	tx-pin1-map0    = <0x76543210>;
++	tx-pin1-map1    = <0xFEDCBA98>;
++	tx-pin2-map0    = <0x76543210>;
++	tx-pin2-map1    = <0xFEDCBA98>;
++	tx-pin3-map0    = <0x76543210>;
++	tx-pin3-map1    = <0xFEDCBA98>;
+ 	rx-pin		= <0>;
+-	//rxfifo-pinmap	= <1 1>;
+-	//rxfifo-chmap	= <0 1>;
+-	pinctrl-used;
+-	pinctrl-names= "default","sleep";
+-	pinctrl-0	= <&i2s4_pins_a &i2s4_pins_b &i2s4_pins_c &i2s4_pins_d &i2s4_pins_e>;
+-	pinctrl-1	= <&i2s4_pins_f>;
+ 	tx-hub-en;
+ 	rx-sync-en;
+-	status		= "disabled";
++	status		= "okay";
+ };
+ 
+ &i2s4_mach {
+ 	soundcard-mach,format		= "i2s";
+ 	soundcard-mach,frame-master	= <&i2s4_cpu>;
+ 	soundcard-mach,bitclock-master	= <&i2s4_cpu>;
+-	/* soundcard-mach,frame-inversion; */
+-	//soundcard-mach,bitclock-inversion;
++	soundcard-mach,name = "allwinner-dp";
+ 	soundcard-mach,slot-num		= <2>;
+ 	soundcard-mach,slot-width	= <32>;
+-	status		= "disabled";
++	status		= "okay";
+ 	i2s4_cpu: soundcard-mach,cpu {
+ 		sound-dai = <&i2s4_plat>;
+-		/* note: pll freq = 24.576M or 22.5792M * pll-fs */
+-		soundcard-mach,pll-fs	= <1>;
+-		/* note:
+-		 * mclk freq = mclk-fs * 12.288M or 11.2896M	(when mclk-fp ture)
+-		 * mclk freq = mclk-fs * pcm rate		(when mclk-fp false)
+-		 */
+-		soundcard-mach,mclk-fs	= <1>;
+-		soundcard-mach,mclk-fp	= <11289600 12288000>;
++		soundcard-mach,pll-fs	= <4>;
++		soundcard-mach,mclk-fs	= <512>;
+ 	};
+ 	i2s4_codec: soundcard-mach,codec {
+-		soundcard-mach,pll-fs   = <1>;
+-		sound-dai               = <&es8388>;
++		sound-dai               = <&edp0>;
+ 	};
+ };
+ //&i2s4_plat {

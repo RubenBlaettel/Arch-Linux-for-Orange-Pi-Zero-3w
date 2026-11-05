@@ -1,0 +1,92 @@
+From 8cca3165237fb339b58619ebcec7bac00b62562c Mon Sep 17 00:00:00 2001
+From: jwalter613 <192773831+jwalter613@users.noreply.github.com>
+Date: Thu, 3 Sep 2026 12:58:29 -0400
+Subject: [PATCH 1/2] usb: typec: sunxi: defer DP HPD until mux enters DP mode
+
+The DisplayPort altmode core supplies the negotiated configuration and
+HPD state while first placing the connector in TYPEC_STATE_SAFE. The
+sunxi PHY switcher currently publishes that HPD immediately, causing the
+eDP controller to attempt AUX transfers before the DP PHY is selected.
+Those transfers time out, and the later DP mux transition does not
+generate another HPD event because the state is already cached as
+connected.
+
+Require an active DP mux state before publishing HPD. This makes the
+notification occur after the PHY has been switched to DisplayPort.
+
+Signed-off-by: jwalter613 <192773831+jwalter613@users.noreply.github.com>
+---
+ bsp/drivers/usb/typec/mux/sunxi-phy-switcher.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/bsp/drivers/usb/typec/mux/sunxi-phy-switcher.c b/bsp/drivers/usb/typec/mux/sunxi-phy-switcher.c
+index f7247dac80f32..331b965c24b50 100644
+--- a/bsp/drivers/usb/typec/mux/sunxi-phy-switcher.c
++++ b/bsp/drivers/usb/typec/mux/sunxi-phy-switcher.c
+@@ -280,7 +280,15 @@ sunxi_phy_mux_set(struct typec_mux_dev *mux, struct typec_mux_state *state)
+ 		}
+ 
+ 		/* altmode displayport plugin */
+-		if ((data->conf & DP_CONF_SIGNALING_DP) && (data->status & DP_STATUS_HPD_STATE))
++		/*
++		 * The DisplayPort altmode core passes the negotiated configuration
++		 * and HPD status while first putting the connector into SAFE mode.
++		 * Do not publish HPD at that point: the DP PHY has not been selected
++		 * yet and consumers will attempt AUX transfers before the mux is
++		 * ready.  Publish it when the subsequent DP mux state is applied.
++		 */
++		if (dp_mode && (data->conf & DP_CONF_SIGNALING_DP) &&
++		    (data->status & DP_STATUS_HPD_STATE))
+ 			phy_switcher->hpd_status = true;
+ 		else
+ 			phy_switcher->hpd_status = false;
+
+From 91f0a440e5feaada58df2440dea7aa149e19bf71 Mon Sep 17 00:00:00 2001
+From: jwalter613 <192773831+jwalter613@users.noreply.github.com>
+Date: Thu, 3 Sep 2026 12:58:29 -0400
+Subject: [PATCH 2/2] drm: sunxi: enable generic fbdev emulation
+
+USB-C DisplayPort connectors become available after Type-C altmode
+negotiation, often after the DRM device is registered. With no fbdev
+client, server images do not modeset a newly connected DP sink and expose
+no console even when DPCD and EDID communication succeeds.
+
+Register the generic fbdev client after drm_dev_register(). It safely
+defers setup when no connector is initially available and retries on the
+subsequent hotplug event.
+
+Signed-off-by: jwalter613 <192773831+jwalter613@users.noreply.github.com>
+---
+ bsp/drivers/drm/sunxi_drm_drv.c | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/bsp/drivers/drm/sunxi_drm_drv.c b/bsp/drivers/drm/sunxi_drm_drv.c
+index 466ad9d5c5bdf..f59e9e8b5b2f9 100644
+--- a/bsp/drivers/drm/sunxi_drm_drv.c
++++ b/bsp/drivers/drm/sunxi_drm_drv.c
+@@ -17,6 +17,7 @@
+ #include <drm/drm_crtc_helper.h>
+ #include <drm/drm_drv.h>
+ #include <drm/drm_fb_helper.h>
++#include <drm/drm_fbdev_generic.h>
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
+ #include <drm/drm_gem_cma_helper.h>
+ #else
+@@ -1169,7 +1170,16 @@ static int sunxi_drm_bind(struct device *dev)
+ 
+ dev_register:
+ 	ret = drm_dev_register(drm, 0);
+-	//sunxi_drm_fbdev_init(drm);
++	if (ret)
++		goto mode_config_clean;
++
++	/*
++	 * USB-C DisplayPort becomes available only after Type-C altmode
++	 * negotiation, which normally completes after the DRM device has been
++	 * registered.  The generic fbdev client safely defers its initial setup
++	 * when no connector is ready and retries on the subsequent hotplug.
++	 */
++	drm_fbdev_generic_setup(drm, 32);
+ 
+ #if IS_ENABLED(CONFIG_PROC_FS)
+ 	ret = sunxi_drm_procfs_init(drm);

@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: opi3w build <build@localhost>
+Date: Wed, 4 Nov 2026 23:50:00 +0100
+Subject: [PATCH] drm: sunxi: bind USB-C DP to DE-0 and HDMI to DE-1
+
+---
+--- a/bsp/drivers/drm/sunxi_drm_edp.c	2026-11-04 23:46:18.673399652 +0100
++++ b/bsp/drivers/drm/sunxi_drm_edp.c	2026-11-04 23:46:18.690683018 +0100
+@@ -4429,6 +4429,8 @@
+ 
+ 	sdrm->encoder.possible_crtcs =
+ 		drm_of_find_possible_crtcs(sdrm->drm_dev, sdrm->tcon_dev->of_node);
++	/* opi3w: DE-1 underruns at this mode under load, keep USB-C DP on the larger DE-0 */
++	sdrm->encoder.possible_crtcs &= BIT(0);
+ 
+ 	if (!IS_ERR_OR_NULL(sdrm->bridge)) {
+ 		_sunxi_edp_init_bridge(drm_edp);
+--- a/bsp/drivers/drm/sunxi_drm_hdmi.c	2026-11-04 23:46:18.678034920 +0100
++++ b/bsp/drivers/drm/sunxi_drm_hdmi.c	2026-11-04 23:46:18.691213310 +0100
+@@ -3506,6 +3506,8 @@
+ 		return -1;
+ 	}
+ 	encoder->possible_crtcs = drm_of_find_possible_crtcs(drm, node);
++	/* opi3w: DE-0 belongs to USB-C DP, see sunxi_drm_edp.c */
++	encoder->possible_crtcs &= BIT(1);
+ 
+ 	/* drm connector register */
+ 	connect->polled            = DRM_CONNECTOR_POLL_HPD;

@@ -1,0 +1,16 @@
+#!/bin/bash
+# Der WLAN-Chip AIC8800 scheitert an WPA3 (SAE). Plasma legt fuer Netze, die WPA2 und WPA3
+# zugleich anbieten, trotzdem WPA3-Profile an, und meldet dann ein falsches Passwort.
+# Solche Profile werden hier auf WPA2 umgestellt. Reine WPA3-Netze bleiben unveraendert.
+nmcli -t -f UUID,TYPE connection show | while IFS=: read -r uuid type; do
+	[ "$type" = 802-11-wireless ] || continue
+	[ "$(nmcli -g 802-11-wireless-security.key-mgmt connection show "$uuid")" = sae ] || continue
+	ssid=$(nmcli -g 802-11-wireless.ssid connection show "$uuid")
+	sec=$(nmcli -t -f SSID,SECURITY device wifi list | grep -F "$ssid:" | cut -d: -f2- | sort -u)
+	if [ -n "$sec" ] && ! echo "$sec" | grep -q WPA2; then
+		echo "$ssid bietet kein WPA2, bleibt unveraendert"
+		continue
+	fi
+	nmcli connection modify "$uuid" 802-11-wireless-security.key-mgmt wpa-psk 802-11-wireless-security.pmf disable
+	echo "$ssid auf WPA2 umgestellt"
+done

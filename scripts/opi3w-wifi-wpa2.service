@@ -1,0 +1,8 @@
+[Unit]
+Description=WLAN-Profile mit WPA3 auf WPA2 umstellen
+After=NetworkManager.service
+Requires=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/opi3w-wifi-wpa2

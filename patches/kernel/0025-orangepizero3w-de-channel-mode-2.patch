@@ -1,0 +1,18 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: opi3w build <build@localhost>
+Date: Thu, 5 Nov 2026 00:10:00 +0100
+Subject: [PATCH] arm64: dts: orangepizero3w: give both display engines usable channels
+
+---
+--- a/arch/arm64/boot/dts/allwinner/sun60i-a733-orangepi-zero3w.dts	2026-11-05 00:04:44.627117090 +0100
++++ b/arch/arm64/boot/dts/allwinner/sun60i-a733-orangepi-zero3w.dts	2026-11-05 00:04:44.665424756 +0100
+@@ -2785,7 +2785,8 @@
+ 
+ &de {
+ 	assigned-clock-rates = <600000000>;
+-	chn_cfg_mode = <0>;
++	/* opi3w: mode 0 leaves DE-1 only uch3, which underruns at 2560x1440 under load */
++	chn_cfg_mode = <2>;
+ 	status = "okay";
+ };
+ 

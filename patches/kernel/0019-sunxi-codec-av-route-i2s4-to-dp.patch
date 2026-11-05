@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: opi3w build <build@localhost>
+Date: Wed, 4 Nov 2026 23:00:00 +0100
+Subject: [PATCH] sound: sunxi: route I2S4 to the DisplayPort controller
+
+---
+--- a/bsp/drivers/sound/codecs/snd_sunxi_codec_av.c	2026-11-04 23:12:06.509123373 +0100
++++ b/bsp/drivers/sound/codecs/snd_sunxi_codec_av.c	2026-11-04 23:12:06.519350432 +0100
+@@ -17,11 +17,15 @@
+ #include <sound/soc.h>
+ #include <sound/pcm_params.h>
+ #include <sound/hdmi-codec.h>
++#include <linux/io.h>
+ 
+ #include "snd_sunxi_common.h"
+ 
+ #define DRV_NAME	"sunxi-snd-codec-av"
+ 
++/* opi3w: SYS_CFG EDP_I2S_SEL, 0: I2S3, 1: I2S4. I2S3 stays with HDMI. */
++#define OPI3W_EDP_I2S_SEL_ADDR	0x0300023c
++
+ struct sunxi_codec {
+ 	struct platform_device *pdev;
+ 
+@@ -186,6 +190,7 @@
+ 	struct sunxi_codec *codec;
+ 	int ret;
+ 	const char *devname = dev_name(dev);
++	void __iomem *edp_i2s_sel;
+ 
+ 	SND_LOG_DEBUG("device name:%s\n", devname);
+ 
+@@ -217,6 +222,12 @@
+ 		return -EINVAL;
+ 	}
+ 
++	edp_i2s_sel = ioremap(OPI3W_EDP_I2S_SEL_ADDR, 4);
++	if (edp_i2s_sel) {
++		writel(1, edp_i2s_sel);
++		iounmap(edp_i2s_sel);
++	}
++
+ 	SND_LOG_DEBUG("register codec-av success\n");
+ 
+ 	return 0;

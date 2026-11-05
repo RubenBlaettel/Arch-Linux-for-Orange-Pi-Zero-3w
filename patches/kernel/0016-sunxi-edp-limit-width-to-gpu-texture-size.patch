@@ -1,0 +1,21 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: opi3w build <build@localhost>
+Date: Wed, 4 Nov 2026 20:00:00 +0100
+Subject: [PATCH] sunxi-drm: edp: reject modes wider than the GPU can composite
+
+---
+diff --git a/bsp/drivers/drm/sunxi_drm_edp.c b/bsp/drivers/drm/sunxi_drm_edp.c
+index 796b5e251..22d12e60e 100644
+--- a/bsp/drivers/drm/sunxi_drm_edp.c
++++ b/bsp/drivers/drm/sunxi_drm_edp.c
+@@ -3897,6 +3897,10 @@ sunxi_edp_connector_mode_valid(struct drm_connector *connector,
+ 		}
+ 	}
+ 
++	/* the GPU cannot composite wider surfaces (maxImageDimension2D = 4096) */
++	if (mode->hdisplay > 4096)
++		return MODE_BAD;
++
+ 	drm_mode_to_sunxi_video_timings((struct drm_display_mode *)mode, &timings);
+ 
+ 	/* abandon the resolution can't be handle by display engine */

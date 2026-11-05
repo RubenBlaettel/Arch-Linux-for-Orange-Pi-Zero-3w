@@ -1,0 +1,19 @@
+# Positivliste: Alles bleibt draussen, was hier nicht ausdruecklich freigegeben ist.
+# Das Projektverzeichnis enthaelt Image, Passwort und privaten SSH-Schluessel.
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/CLAUDE.md
+!/sd-schreiben.ps1
+!/scripts/
+!/patches/
+
+# Zweite Sicherung, falls etwas in den freigegebenen Ordnern landet
+*.img
+*.iso
+*.sha256
+*.log
+*ed25519*
+benutzerpasswort*
+*.pkg.tar.*

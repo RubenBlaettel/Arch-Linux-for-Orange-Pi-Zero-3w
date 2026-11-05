@@ -1,0 +1,11 @@
+[Unit]
+Description=USB-Controller am USB-C-Anschluss nach einem Ausfall zuruecksetzen
+After=systemd-journald.service
+
+[Service]
+ExecStart=/usr/local/bin/opi3w-usb-recover
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

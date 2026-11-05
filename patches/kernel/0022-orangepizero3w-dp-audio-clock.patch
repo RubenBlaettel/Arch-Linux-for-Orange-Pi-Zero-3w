@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: opi3w build <build@localhost>
+Date: Wed, 4 Nov 2026 23:50:00 +0100
+Subject: [PATCH] arm64: dts: orangepizero3w: clock DP audio I2S4 like the HDMI card
+
+---
+--- a/arch/arm64/boot/dts/allwinner/sun60i-a733-orangepi-zero3w.dts	2026-11-04 23:46:18.625399589 +0100
++++ b/arch/arm64/boot/dts/allwinner/sun60i-a733-orangepi-zero3w.dts	2026-11-04 23:46:18.662029689 +0100
+@@ -3248,8 +3248,9 @@
+ 	status		= "okay";
+ 	i2s4_cpu: soundcard-mach,cpu {
+ 		sound-dai = <&i2s4_plat>;
+-		soundcard-mach,pll-fs	= <4>;
+-		soundcard-mach,mclk-fs	= <512>;
++		/* 24.576 MHz: an integer divider of pll-audio1-div5 and of the bit clock */
++		soundcard-mach,pll-fs	= <1>;
++		soundcard-mach,mclk-fs	= <0>;
+ 	};
+ 	i2s4_codec: soundcard-mach,codec {
+ 		sound-dai               = <&edp0>;

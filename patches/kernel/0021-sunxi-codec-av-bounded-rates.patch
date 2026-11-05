@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: opi3w build <build@localhost>
+Date: Wed, 4 Nov 2026 23:40:00 +0100
+Subject: [PATCH] sound: sunxi: codec-av: report a bounded sample rate range
+
+---
+--- a/bsp/drivers/sound/codecs/snd_sunxi_codec_av.c	2026-11-04 23:31:51.358005540 +0100
++++ b/bsp/drivers/sound/codecs/snd_sunxi_codec_av.c	2026-11-04 23:31:51.396437157 +0100
+@@ -168,8 +168,8 @@
+ 		.stream_name	= "Playback",
+ 		.channels_min	= 1,
+ 		.channels_max	= 8,
+-		.rates		= SNDRV_PCM_RATE_8000_192000
+-				| SNDRV_PCM_RATE_KNOT,
++		/* opi3w: KNOT without constraints reports an unbounded rate range */
++		.rates		= SNDRV_PCM_RATE_8000_192000,
+ 		.formats	= SNDRV_PCM_FMTBIT_S16_LE
+ 				| SNDRV_PCM_FMTBIT_S20_LE
+ 				| SNDRV_PCM_FMTBIT_S24_LE
