@@ -124,6 +124,7 @@ cp "$S/cachyos-fish-config/config.fish" "$R/etc/skel/.config/fish/config.fish"
 # --- Eigene Dateien ---
 bash "$B/scripts/overlay.sh" "$R"
 bash "$B/scripts/overlay2.sh" "$R"
+bash "$B/scripts/overlay3.sh" "$R"
 
 # --- Zugangsdaten ---
 if [ ! -f "$OUT/opi3w_ed25519" ]; then ssh-keygen -q -t ed25519 -N '' -C opi3w-test -f "$OUT/opi3w_ed25519"; fi

@@ -75,9 +75,24 @@ Die SD-Karte nur nach ausdrücklicher Bestätigung überschreiben: WLAN-Profil u
 
 **Grafik:** Imagination BXM-4-64, BVNC 36.56.104.183, Treiber `apercel`, freie Firmware, Mesa 26.3.0-rc2. KWin rendert GLES 3.1 über zink, Qt Quick über Vulkan (`QSG_RHI_BACKEND=vulkan`), `PVR_I_WANT_A_BROKEN_VULKAN_DRIVER=1` ist Pflicht. Der eigene Mesa-Patch erlaubt EGL unter Wayland ohne Render-Knoten des Compositors. `GALLIUM_DRIVER=zink` nicht setzen: Das ergab einen schwarzen Bildschirm. `apercel.ko` muss bei jedem Kernelbau neu gelinkt werden, sonst lehnt der Kernel das Modul wegen BTF ab und KWin stürzt in Schleife ab.
 
+**Leistung (`scripts/overlay3.sh`, läuft auch am Live-System mit `/`):**
+- Hauptursache der Lag-Spikes war KWins Software-Helligkeit: Sie zwingt jeden Bildpunkt durch den Farbraum-Shader, und der PowerVR-Compiler lädt Uniforms je Pixel aus dem Speicher (etwa 5 bis 8 ms je Uniform-Wert bei 2560x1440). Ein Vollbild-Job dauerte 370 ms statt 47 ms. Abhilfe: `allowSdrSoftwareBrightness=false` in `kwinoutputconfig.json`, gesetzt per `ExecStartPre` von KWin. Einmalig nach der ersten Anmeldung startet `opi3w-kwin-first` die Sitzung neu.
+- `CONFIG_RT_GROUP_SCHED=y` verweigert KWin die Echtzeit-Priorität mit `EPERM`. Abhilfe: `kernel.sched_rt_runtime_us=-1`.
+- `POWERDEVIL_NO_DDCUTIL=1`: libddcutil fragt sonst alle I2C-Busse ab und erzeugt Fehlerstürme auf der Konsole. Helligkeit daher am Monitor einstellen.
+- Sitzung neu starten: `systemctl stop sddm`, dann `systemctl stop user@1000.service`, dann `systemctl start sddm`. Ein `restart sddm` allein oder ein Neustart von `plasma-kwin_wayland` endet am Anmeldebildschirm.
+- Boot-Protokolle laufen nur noch rund 2 Minuten nach dem Start. Dauerhaft live: `systemctl start opi3w-klog`.
+- Geprüft und ohne Nutzen: `read_ahead_kb=1024`, `power/control=on` für die GPU (`no_autosuspend=1` lässt die GPU trotz des Namens im Leerlauf aus, das Aufwachen kostet aber nur 1 bis 2 ms), `KWIN_DRM_PREFER_COLOR_DEPTH=24` (bleibt `AB30`).
+- Messen: ftrace-Ereignisse `gpu_scheduler`, `dma_fence`, `drm_vblank_event_delivered` für Job-Dauern und Bildlücken. FW-Trace über `echo 0xffff > /sys/kernel/debug/dri/1/pvr_params/fw_trace_mask` und `pvr_fw/trace_0` (2247 Ticks je ms, danach wieder `0`). Vor Messungen `kscreen-doctor --dpms on` und `kde-inhibit`, sonst schaltet der Leerlauf den Bildschirm ab und es gibt keine Bilder.
+- DSU: `cpu_dsu` steht fest auf 780 MHz, weil `CONFIG_AW_SUNXI_DSUFREQ` aus ist. Dadurch fehlt auch `set_dsufreq_cb` im Kernel, der Herstellertreiber geht also nur mit neuem Kernel. Dieser Chip hat `26m-vf0400`, der DSU hängt an der A55-Versorgung `dcdc5`, bei 1,0 V sind laut Tabelle 1274 MHz zulässig. Getestet mit einem eigenen Modul zur Laufzeit, 1274 gegen 780 MHz: Hauptspeicher 160 statt 173 ns, L3-Bereich 19 statt 26 ns, `xz` 4 % schneller, Firefox-Start 3,95 s statt 4,17 s (fast in der Streuung), unter Dauerlast kein klarer Unterschied (18 gegen 17 bis 18 `xz`-Läufe in 4 min). Nicht eingebaut, weil der Nutzen klein ist und das Drosseln bei Hitze ungetestet blieb (höchstens 70 °C im Test).
+- Noch ungenutzt: Der PCO-Compiler hebt Uniforms nicht in Shared Registers.
+
 **Ton:** I2S3 versorgt HDMI, I2S4 versorgt DisplayPort (Karte `allwinner-dp`). Der Codec-Treiber ist `snd_sunxi_codec_av`, I2S4 läuft mit `pll-fs=1`, `mclk-fs=0`: Die vom Hersteller kommentierten Werte 4/512 ergeben einen falschen Takt und verzerrten Ton. Der Umschalter `EDP_I2S_SEL` (`0x0300023c`) liest sich immer als 0, die Herkunft der Adresse ist unbelegt. WirePlumber-Regeln in `scripts/60-opi3w-audio.conf`.
 
-**USB:** `usbc0` ist der Stromanschluss, Gerätemodus (USB 2.0), NCM und ACM. `usbc2` ist der Monitor-Anschluss (dwc3 mit xHCI). Bei `HC died` setzt `opi3w-usb-recover` den Controller über dwc3 `unbind`/`bind` zurück. Das Zurücksetzen eines gesunden Controllers kann den Hub verlieren.
+**USB:** `usbc0` ist der Stromanschluss, Gerätemodus (USB 2.0), NCM und ACM. `usbc2` ist der Monitor-Anschluss (dwc3 mit xHCI). Bei `HC died` setzt `opi3w-usb-recover` den Controller über dwc3 `unbind`/`bind` zurück. Das Zurücksetzen eines gesunden Controllers kann den Hub verlieren. **Ein Neustart nach diesem Zurücksetzen bleibt am Ende hängen** (3 von 3, einmal gezielt ausgelöst, Journal endet bei `Journal stopped`), nur Stromtrennen hilft. `RebootWatchdogSec=15s` löste das nicht auf. Das Skript startet deshalb nicht mehr selbst neu. Im Hängerzustand meldet Windows das USB-Netz als `Up`, aber Ping und ARP bleiben aus, und COM3 hängt beim Öffnen; der Monitor kann weiter ein Bild zeigen.
+
+**Monitor-Hub:** Der Hub fehlte am Testmonitor bei 5 von 5 Starts (Port `not attached`), Maus und Tastatur also auch. Später kam er auch von selbst, und einmal ging er rund 10 s nach `--dpms on` verloren (1 von 3). `verbosity` ist nicht die Ursache: Der Fehler blieb mit `verbosity=7`. dwc3 `unbind`/`bind` half nicht. 22 s nach dem Abschalten von HDMI kam der Hub jedes Mal und blieb auch mit wieder eingeschaltetem HDMI. Vermutet, aber nicht belegt: Der Monitor koppelt den USB-Anschluss an den angezeigten Eingang. Warum es vor Bootrunde 6 ohne Eingriff ging, ist ungeklärt. `opi3w-usbc-hub` (Autostart, `scripts/overlay3.sh`) überwacht den Hub dauerhaft und schaltet HDMI nur ab, solange er 15 s fehlt, Protokoll in `~/.local/state/opi3w-usbc-hub.log`. Fehlt er, sind Maus und Tastatur erst rund 67 s nach dem Start da, und HDMI bleibt 22 s dunkel. Ein Monitor ohne Hub bekommt zwei Versuche, danach endet die Überwachung.
+
+**Tiefschlaf:** Plasma schickte das System nach rund 15 min Leerlauf in `deep`, und es wachte in 2 von 2 Fällen nicht mehr auf (Journal endet bei `PM: suspend entry`). Das sah wie ein Absturz aus. `AllowSuspend=no` in `/etc/systemd/sleep.conf.d/90-opi3w.conf` schaltet es ab, `overlay3.sh` setzt das. Lange Messungen liefen vorher mitten im Test in diese Falle.
 
 **WLAN:** AIC8800D80 über SDIO. SAE/WPA3 wird beim Verbinden abgelehnt (Status 53). `opi3w-wifi-wpa2.path` stellt neue WPA3-Profile von Mischnetzen auf `wpa-psk` mit `pmf=disable` um. **Bluetooth:** UART über `aic8800-bluetooth.service`.
 
@@ -91,7 +106,10 @@ Am SBC bestätigt: Booten vom Image auf der Karte, Kaltstart, USB-C als Hauptanz
 
 Offen und bekannt:
 - Firefox rechnet auf der CPU; erzwungene GPU-Nutzung stürzt in `libvulkan_powervr_mesa.so` ab
-- Beim allerersten Start kam der Monitor-Hub einmal erst nach dem Umstecken des Kabels, Ursache ungeklärt
+- `overlay3.sh` ist am SBC angewendet und dort getestet, das Image auf der Festplatte enthält es noch nicht
+- `opi3w-usbc-hub` ist in Neustarts und einem Kaltstart getestet, nicht an einem Monitor ohne Hub (dort wäre HDMI bei jedem Start bis zu 90 s aus). Der Verlust nach `--dpms on` trat beim Test der Überwachung nicht mehr auf, die Rückholung dabei ist nur im laufenden Betrieb ohne Bildschirmwechsel belegt
+- Die 90 s Wartezeit in `opi3w-usb-recover` sind ungetestet, weil sich `HC died` nicht gezielt auslösen lässt
+- Beim allerersten Start kam der Monitor-Hub einmal erst nach dem Umstecken des Kabels, möglicherweise dieselbe Ursache wie unter „Monitor-Hub“
 - Sporadischer `HC died` beim Start (einmal in sechs Starts), Ursache ungeklärt
 - Bluetooth-Kopplung und elektrischer Stiftleisten-Test stehen aus, die Pinbelegung ist nicht abgeglichen
 - Unter Dauerlast 90 bis 93 °C mit starkem Heruntertakten

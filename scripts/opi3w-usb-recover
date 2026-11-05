@@ -2,12 +2,11 @@
 # Setzt den USB-Controller am USB-C-Anschluss zurueck, wenn der xHCI-Teil haengen bleibt.
 # Ohne das fallen Maus, Tastatur und Monitor-Hub bis zum naechsten Neustart aus.
 # Das Zuruecksetzen laesst Bild und Ton ueber DisplayPort unberuehrt.
-# Bleibt der Hub danach weg, hilft nur ein Neustart. Den loest das Skript nur kurz nach
-# dem Systemstart aus (keine offene Arbeit) und hoechstens einmal in zehn Minuten.
+# Kein automatischer Neustart: Nach diesem Zuruecksetzen blieb er dreimal von dreimal am Ende haengen,
+# und nur ein Stromtrennen half. Einen fehlenden Monitor-Hub holt opi3w-usbc-hub zurueck.
 P=6a00000.xhci2-controller
 D=/sys/bus/platform/drivers/dwc3
 SEEN=/run/opi3w-usb-recover.seen
-STAMP=/var/lib/opi3w-usb-recover.stamp
 
 devices() { ls /sys/bus/usb/devices | grep -cE '^[0-9]+-[1-9]'; }
 
@@ -22,18 +21,11 @@ journalctl -k -b -f -n all -o cat --grep='HC died' | while read -r _; do
 	echo "$P" > "$D/unbind"
 	sleep 2
 	echo "$P" > "$D/bind"
-	sleep 15
+	# opi3w-usbc-hub holt einen fehlenden Monitor-Hub erst nach gut 60 s zurueck.
+	for _ in $(seq 1 90); do [ "$(devices)" -gt 0 ] && break; sleep 1; done
 	if [ "$(devices)" -gt 0 ]; then
 		echo "USB-Geraete wieder da"
-		continue
-	fi
-	up=$(cut -d. -f1 /proc/uptime)
-	last=$(stat -c %Y "$STAMP" 2>/dev/null || echo 0)
-	if [ "$up" -lt 180 ] && [ $(($(date +%s) - last)) -gt 600 ]; then
-		echo "USB-Geraete fehlen weiter, starte neu"
-		touch "$STAMP"
-		systemctl reboot
 	else
-		echo "USB-Geraete fehlen weiter, kein automatischer Neustart"
+		echo "USB-Geraete fehlen weiter"
 	fi
 done

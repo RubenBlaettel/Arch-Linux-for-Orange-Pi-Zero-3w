@@ -28,8 +28,12 @@ Das System ist Arch Linux ARM im CachyOS-Stil, **kein CachyOS**: Für CachyOS gi
 
 - **WLAN-Passwort wird als falsch gemeldet:** Der Chip scheitert an WPA3. Das System stellt neue Profile für Netze mit WPA2 und WPA3 selbst auf WPA2 um, die erste Eingabe kann aber fehlschlagen. Gib das Passwort dann noch einmal ein. Reine WPA3-Netze funktionieren nicht.
 - **Maus und Tastatur fehlen nach dem Start:** Der USB-Controller blieb einmal in sechs Starts hängen. Ein Dienst setzt ihn dann zurück. Beim allerersten Start kam der Monitor-Hub einmal erst, nachdem das USB-C-Kabel neu gesteckt war. Die Ursachen sind ungeklärt.
+- **Maus und Tastatur kommen spät, wenn USB-C und HDMI am selben Monitor hängen:** Der Hub im Monitor meldet sich dann oft nicht. Das System schaltet HDMI in diesem Fall für rund 22 s ab und danach wieder ein, auch im laufenden Betrieb. Beim Start sind Maus und Tastatur dadurch erst etwa 67 s später da.
+- **Neustart bleibt hängen:** Nach einem Ausfall des USB-Controllers kann ein Neustart am Ende stehen bleiben. Trenne den SBC dann kurz vom Strom. Der Bildschirm kann dabei noch ein Bild zeigen.
+- **Keine Bereitschaft:** Das System wachte aus dem Tiefschlaf nicht mehr auf, die Bereitschaft ist deshalb abgeschaltet. Im Leerlauf geht nur der Bildschirm aus.
 - **Hitze:** Unter Dauerlast erreicht der SoC trotz Lüfter 90 bis 93 °C und taktet stark herunter. Für längere Last braucht das Board bessere Kühlung.
 - **Kein Bootloader-Bild über USB-C:** Das Bild beginnt erst mit dem Kernel.
+- **Helligkeit nur am Monitor:** Die Regler in Plasma sind abgeschaltet, weil Software-Helligkeit und DDC/CI das Bild stark ausbremsen. Nach der ersten Anmeldung startet die Sitzung deshalb einmal neu. Ein später neu angeschlossener Monitor läuft bis zur nächsten Anmeldung langsamer.
 
 ## Installation
 

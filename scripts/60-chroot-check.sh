@@ -10,7 +10,7 @@ cat > "$R/root/c.sh" <<'EOF'
 pacman -Q mesa kwin systemd
 ldd /usr/lib/libgbm.so.1 | grep 'not found' || echo gbm-libs-ok
 ldd /usr/bin/kwin_wayland | grep 'not found' || echo kwin-libs-ok
-systemctl is-enabled sddm NetworkManager sshd systemd-networkd opi3w-usb-gadget opi3w-bootlog opi3w-klog opi3w-growroot gpu-cpu-perf aic8800-bluetooth a733-fan-control 2>&1 | paste -sd' '
+systemctl is-enabled sddm NetworkManager sshd systemd-networkd opi3w-usb-gadget opi3w-bootlog opi3w-klog opi3w-growroot gpu-cpu-perf aic8800-bluetooth a733-fan-control opi3w-preload opi3w-kwin-first.path 2>&1 | paste -sd' '
 systemd-analyze verify --no-pager opi3w-bootlog.service opi3w-klog.service opi3w-usb-gadget.service opi3w-growroot.service 2>&1 | head -10
 modinfo -k 6.6.98-vendor-sun60iw2 apercel -F filename; modinfo -k 6.6.98-vendor-sun60iw2 vipcore -F filename
 grep -c . /etc/fstab; cat /etc/fstab
